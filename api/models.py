@@ -17,3 +17,9 @@ class Answers(models.Model):
 class Questions(models.Model):
     text = models.CharField(max_length=500)
     answers = models.ForeignKey(to=Answers, on_delete=models.CASCADE)
+
+class Results(models.Model):
+    fullname = models.CharField(max_length=150)
+    count = models.SmallIntegerField()
+    percentage = models.FloatField()
+    
