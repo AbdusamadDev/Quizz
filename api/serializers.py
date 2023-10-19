@@ -25,4 +25,10 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class ResultSerializer(serializers.Serializer):
     fullname = serializers.CharField(required=True)
-    results = serializers.ListField(required=True)
+    answers = serializers.ListField(required=True)
+
+
+class ResultGETSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Results
+        fields = "__all__"

@@ -22,4 +22,3 @@ class Results(models.Model):
     fullname = models.CharField(max_length=150)
     count = models.SmallIntegerField()
     percentage = models.FloatField()
-    
