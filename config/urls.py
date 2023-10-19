@@ -12,5 +12,6 @@ router.register(r"answers", AnswerModelViewSet)
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
-    path("api/submit/", SubmitAPIView.as_view())
+    path("api/submit/", SubmitAPIView.as_view()),
+    path("web/", include("web.urls")),
 ]

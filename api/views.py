@@ -35,29 +35,44 @@ class SubmitAPIView(CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        count = 0
-        users = Results.objects.all().values_list("fullname")
-        users = [user[0] for user in users]
-        print(users)
-        if serializer.validated_data.get("fullname") in users:
-            return Response(
-                data={"msg": "You have already taken the quizz"},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
-        for data in serializer.validated_data.get("answers"):
-            question = Questions.objects.get(pk=data.get("question_id"))
-            answer = Answers.objects.get(pk=question.answers.pk)
-            if data.get("answer") == answer.correct_answer:
-                count += 1
+        score = serializer.validated_data.get("score")
         total = Questions.objects.all().count()
-        percentage = (count / total) * 100
+        percentage = (score / total) * 100
         Results.objects.create(
             fullname=serializer.validated_data.get("fullname"),
-            count=count,
+            count=score,
             percentage=percentage,
         )
         rank = ResultGETSerializer(self.get_queryset(), many=True).data
         return Response(rank, status=status.HTTP_201_CREATED)
+
+
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.serializer_class(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     count = 0
+    #     users = Results.objects.all().values_list("fullname")
+    #     users = [user[0] for user in users]
+    #     print(users)
+    #     if serializer.validated_data.get("fullname") in users:
+    #         return Response(
+    #             data={"msg": "You have already taken the quizz"},
+    #             status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #         )
+    #     for data in serializer.validated_data.get("answers"):
+    #         question = Questions.objects.get(pk=data.get("question_id"))
+    #         answer = Answers.objects.get(pk=question.answers.pk)
+    #         if data.get("answer") == answer.correct_answer:
+    #             count += 1
+    #     total = Questions.objects.all().count()
+    #     percentage = (count / total) * 100
+    #     Results.objects.create(
+    #         fullname=serializer.validated_data.get("fullname"),
+    #         count=count,
+    #         percentage=percentage,
+    #     )
+    #     rank = ResultGETSerializer(self.get_queryset(), many=True).data
+    #     return Response(rank, status=status.HTTP_201_CREATED)
 
 
 """

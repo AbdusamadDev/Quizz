@@ -6,7 +6,7 @@ from api.models import Questions, Answers, Results
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Answers
-        fields = "__all__"
+        fields = ["a", "b", "c", "correct_answer"]
 
 
 class QuestionSerializer(serializers.ModelSerializer):
@@ -25,7 +25,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class ResultSerializer(serializers.Serializer):
     fullname = serializers.CharField(required=True)
-    answers = serializers.ListField(required=True)
+    score = serializers.IntegerField(required=True)
 
 
 class ResultGETSerializer(serializers.ModelSerializer):

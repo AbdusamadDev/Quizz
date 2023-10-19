@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz App</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+        .full-width {
+            width: 90%;
+            line-height: 50px;
+            margin-left: 20px;
+        }
+        .full_name_style{
+            width: 300px;
+        }
+        body{
+            display: grid;
+            place-content: center;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <div class="border" id="quiz_app" style="border-radius: 20px; padding: 6rem; box-shadow: rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.04) 0px 10px 10px -5px;">
+            <h1 class="text-center">Quiz App</h1>
+            <div id="name-input" class="full_name_style">
+                <label for="fullname">Full Name:</label>
+                <input type="text" id="fullname" class="form-control my-3" placeholder="Enter your full name" />
+                <div class="d-flex justify-content-center">
+                    <button id="start-button" class="btn btn-primary w-100" onclick="startQuiz()">
+                    Start Quiz
+                </button>
+                </div>
+            </div>
+        </div>
+        <div id="quiz-container" style="width: 700px; display: none">
+            <div id="question-text" style="font-size: 2rem;"></div>
+            <ul id="answer-options" class="list-group my-5"></ul>
+            <div id="buttons" style="display: flex; justify-content: space-between;">
+                <button id="prev-button" class="btn btn-primary" onclick="prevQuestion()" disabled>
+                    Previous
+                </button>
+                <button id="next-button" class="btn btn-primary" onclick="nextQuestion()">
+                    Next
+                </button>
+                <button id="finish-button" class="btn btn-success" onclick="finishQuiz()">
+                    Finish
+                </button>
+            </div>
+        </div>
+        <div id="results" style="display: none">
+            <h2>Results:</h2>
+            <div id="result-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let originalQuizData;
+        let quizData;
+        let fullName;
+
+        function startQuiz() {
+            let quiz_app = document.getElementById("quiz_app");
+            quiz_app.style.display = "none";
+            fullName = document.getElementById("fullname").value;
+            document.getElementById("name-input").style.display = "none";
+            document.getElementById("quiz-container").style.display = "block";
+
+            fetch("http://192.168.1.132:8000/api/questions/")
+                .then((res) => res.json())
+                .then((res) => {
+                    originalQuizData = res;
+                    quizData = shuffleQuestionsAndAnswers(originalQuizData);
+                    showQuestion();
+                });
+        }
+
+        let currentQuestion = 0;
+        let userAnswers = {};
+        let correctCount = 0;
+        let mistakesList = [];
+
+        const questionText = document.getElementById("question-text");
+        const answerOptions = document.getElementById("answer-options");
+        const prevButton = document.getElementById("prev-button");
+        const nextButton = document.getElementById("next-button");
+        const finishButton = document.getElementById("finish-button");
+        const resultsContainer = document.getElementById("results");
+        const resultList = document.getElementById("result-list");
+
+        function shuffleQuestionsAndAnswers(data) {
+            const shuffledData = [...data];
+            for (let i = shuffledData.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledData[i], shuffledData[j]] = [
+                    shuffledData[j],
+                    shuffledData[i],
+                ];
+                shuffleAnswers(shuffledData[i].answers);
+            }
+            return shuffledData;
+        }
+
+        function shuffleAnswers(answers) {
+            const shuffledAnswers = {
+                ...answers
+            };
+            const keys = Object.keys(shuffledAnswers);
+            keys.splice(keys.indexOf("correct_answer"), 1); // Remove the correct answer key
+            for (let i = keys.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                ([shuffledAnswers[keys[i]], shuffledAnswers[keys[j]]] = [
+                    shuffledAnswers[keys[j]],
+                ]),
+                    shuffledAnswers[keys[i]];
+            }
+        }
+
+        function showQuestion() {
+            const question = quizData[currentQuestion];
+            questionText.innerText = `Q${currentQuestion + 1}: ${question.text}`;
+            answerOptions.innerHTML = "";
+
+            const shuffledAnswerKeys = shuffleArray(Object.keys(question.answers));
+            for (let key of shuffledAnswerKeys) {
+                if (key !== "correct_answer") {
+                    const listItem = document.createElement("li");
+                    listItem.className = "list-group-item";
+                    const radioInput = document.createElement("input");
+                    radioInput.type = "radio";
+                    radioInput.name = "answer";
+                    radioInput.value = key;
+                    radioInput.id = `answer${key}`;
+                    listItem.appendChild(radioInput);
+
+                    const label = document.createElement("label");
+                    label.htmlFor = `answer${key}`;
+                    label.classList.add("full-width");
+                    label.innerText = question.answers[key];
+                    listItem.appendChild(label);
+
+                    answerOptions.appendChild(listItem);
+                }
+            }
+
+            updateButtons();
+        }
+
+        function shuffleArray(array) {
+            const shuffledArray = [...array];
+            for (let i = shuffledArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledArray[i], shuffledArray[j]] = [
+                    shuffledArray[j],
+                    shuffledArray[i],
+                ];
+            }
+            return shuffledArray;
+        }
+
+        function updateButtons() {
+            prevButton.disabled = currentQuestion === 0;
+            nextButton.style.display =
+                currentQuestion === quizData.length - 1 ? "none" : "inline";
+            finishButton.style.display =
+                currentQuestion === quizData.length - 1 ? "inline" : "none";
+        }
+
+        function checkAnswer() {
+            const selectedAnswer = document.querySelector(
+                'input[name="answer"]:checked'
+            );
+            if (selectedAnswer) {
+                const selectedValue = selectedAnswer.value;
+                userAnswers[currentQuestion] = selectedValue;
+                const correctAnswer =
+                    quizData[currentQuestion].answers.correct_answer;
+                if (selectedValue === correctAnswer) {
+                    correctCount++;
+                } else {
+                    mistakesList.push({
+                        question: currentQuestion,
+                        correct: correctAnswer,
+                        selected: selectedValue,
+                    });
+                }
+            }
+        }
+
+        function nextQuestion() {
+            checkAnswer();
+
+            if (currentQuestion < quizData.length - 1) {
+                currentQuestion++;
+                showQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            checkAnswer();
+
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion();
+            }
+        }
+
+        function finishQuiz() {
+            checkAnswer();
+
+            resultsContainer.style.display = "block";
+            questionText.style.display = "none";
+            answerOptions.style.display = "none";
+            nextButton.style.display = "none";
+            prevButton.style.display = "none";
+            finishButton.style.display = "none";
+            showResults();
+        }
+
+        function showResults() {
+            let userName = document.querySelector("#results h2");
+            userName.innerHTML = `Test topshiruvchi: ${fullName} <span class="badge badge-success">${correctCount}</span>`;
+            const totalQuestions = quizData.length;
+            const resultText = `You got ${correctCount} out of ${totalQuestions} correct.`;
+
+            resultList.innerHTML = "";
+
+            for (let i = 0; i < quizData.length; i++) {
+                const question = quizData[i];
+                const isCorrect = userAnswers[i] === question.answers.correct_answer;
+                const userAnswerText = question.answers[userAnswers[i]];
+                const correctAnswerText = question.answers[question.answers.correct_answer];
+
+                const resultItem = document.createElement("p");
+                resultItem.innerHTML = `<div class="border my-3 p-3">Q${i + 1}: ${question.text} <br> Your Answer: ${userAnswerText}<br> Correct Answer: ${correctAnswerText}</div>`;
+                if (isCorrect) {
+                    resultItem.style.color = "green";
+                } else {
+                    resultItem.style.color = "red";
+                }
+                resultList.appendChild(resultItem);
+            }
+
+            let data = {
+                "fullname": fullName,
+                "score": correctCount,
+            }
+            fetch("http://192.168.1.132:8000/api/submit/", {
+                method: "POST", 
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            })
+        }
+   </script>
+</body>
+
+</html>
